@@ -1978,8 +1978,7 @@ See [LICENSE](LICENSE) file for complete license text and terms.
 
 - 🐛 **Issues:** Report on GitHub
 - 💬 **Discussions:** Ask questions
-- 📧 **Email:** contact@asuracore.example.com
-- 🌐 **Website:** https://asuracore.example.com
+- 🌐 **Website:** https://devel-ai.ub.ac.id/asuracore
 
 ---
 
