@@ -1,0 +1,151 @@
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: asuracore_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: asuracore
+      POSTGRES_USER: asuracore
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./backend/src/db/init.sql:/docker-entrypoint-initdb.d/init.sql
+    ports:
+      - "5432:5432"
+    networks:
+      - asuracore_network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U asuracore -d asuracore"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # InfluxDB Time-Series Database
+  influxdb:
+    image: influxdb:2.7-alpine
+    container_name: asuracore_influxdb
+    restart: unless-stopped
+    environment:
+      DOCKER_INFLUXDB_INIT_MODE: setup
+      DOCKER_INFLUXDB_INIT_USERNAME: asuracore
+      DOCKER_INFLUXDB_INIT_PASSWORD: ${INFLUXDB_PASSWORD}
+      DOCKER_INFLUXDB_INIT_ORG: asuracore
+      DOCKER_INFLUXDB_INIT_BUCKET: telemetry
+      DOCKER_INFLUXDB_INIT_ADMIN_TOKEN: ${INFLUXDB_TOKEN}
+    volumes:
+      - influxdb_data:/var/lib/influxdb2
+      - influxdb_config:/etc/influxdb2
+    ports:
+      - "8086:8086"
+    networks:
+      - asuracore_network
+    healthcheck:
+      test: ["CMD", "influx", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # EMQX MQTT Broker
+  emqx:
+    image: emqx/emqx:5.3.2
+    container_name: asuracore_emqx
+    restart: unless-stopped
+    environment:
+      EMQX_NAME: asuracore_emqx
+      EMQX_HOST: 0.0.0.0
+      EMQX_LISTENER__TCP__EXTERNAL: 1883
+      EMQX_LISTENER__WS__EXTERNAL: 8083
+      EMQX_DASHBOARD__DEFAULT_USERNAME: admin
+      EMQX_DASHBOARD__DEFAULT_PASSWORD: ${EMQX_DASHBOARD_PASSWORD}
+      EMQX_ALLOW_ANONYMOUS: "true"
+    volumes:
+      - emqx_data:/opt/emqx/data
+      - emqx_log:/opt/emqx/log
+    ports:
+      - "1883:1883"    # MQTT TCP
+      - "8083:8083"    # MQTT WebSocket
+      - "8084:8084"    # MQTT WSS
+      - "8883:8883"    # MQTT SSL
+      - "18083:18083"  # EMQX Dashboard
+    networks:
+      - asuracore_network
+    healthcheck:
+      test: ["CMD", "/opt/emqx/bin/emqx_ctl", "status"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Backend API Server
+  backend:
+    build:
+      context: ./backend
+      dockerfile: ../docker/backend.Dockerfile
+    container_name: asuracore_backend
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      PORT: 4000
+      HOST: 0.0.0.0
+      # PostgreSQL
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: 5432
+      POSTGRES_DB: asuracore
+      POSTGRES_USER: asuracore
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      # InfluxDB
+      INFLUXDB_URL: http://influxdb:8086
+      INFLUXDB_TOKEN: ${INFLUXDB_TOKEN}
+      INFLUXDB_ORG: asuracore
+      INFLUXDB_BUCKET: telemetry
+      # MQTT
+      MQTT_BROKER_URL: mqtt://emqx:1883
+      MQTT_USERNAME: asuracore_backend
+      MQTT_PASSWORD: ${MQTT_PASSWORD}
+      # JWT
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_EXPIRES_IN: 7d
+    ports:
+      - "4000:4000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      influxdb:
+        condition: service_healthy
+      emqx:
+        condition: service_healthy
+    networks:
+      - asuracore_network
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:4000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Frontend Web Application
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: ../docker/frontend.Dockerfile
+      args:
+        VITE_API_URL: ${FRONTEND_API_URL}
+        VITE_WS_URL: ${FRONTEND_WS_URL}
+    container_name: asuracore_frontend
+    restart: unless-stopped
+    ports:
+      - "3000:80"
+    depends_on:
+      - backend
+    networks:
+      - asuracore_network
+
+volumes:
+  postgres_data:
+  influxdb_data:
+  influxdb_config:
+  emqx_data:
+  emqx_log:
+
+networks:
+  asuracore_network:
+    driver: bridge
