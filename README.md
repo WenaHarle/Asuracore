@@ -28,13 +28,8 @@
 
 ### 3. User Interface & Features
 - [Application Screenshots](#application-screenshots)
-- [Supported Widgets](#dashboard-widget-types)
-- [UI Features](#key-features-demonstrated)
-- [Usage Examples](#usage-tips)
 
 ### 4. Development Guide
-- [API Client Documentation](#api-client-usage-guide)
-- [API Modules Reference](#api-modules-reference)
 - [Frontend Development](#frontend-development)
 - [Backend Development](#backend-development)
 - [Firmware Development](#firmware-development)
@@ -53,14 +48,12 @@
 - [Database Management](#database-operations)
 - [MQTT Operations](#mqtt-operations)
 - [Logs & Debugging](#logs-and-debugging)
-- [Backup & Recovery](#backup-and-recovery)
 - [Secret Rotation](#secret-rotation-procedures)
 - [Performance Optimization](#performance-optimization)
 
 ### 7. Troubleshooting & Support
 - [Common Issues](#troubleshooting-guide)
 - [FAQ](#frequently-asked-questions)
-- [Getting Help](#getting-help)
 - [Quick Reference Commands](#quick-reference-commands)
 
 ### 8. Additional Resources
@@ -71,7 +64,7 @@
 
 ---
 
-## 🎯 Key Features
+<h2 id="key-features">🎯 Key Features</h2>
 
 ### Core Features
 ✅ **Real-Time Monitoring**
@@ -143,7 +136,7 @@
 
 ---
 
-## 🛠️ Tech Stack
+<h2 id="tech-stack">🛠️ Tech Stack</h2>
 
 | Layer | Technology | Version | Purpose |
 |-------|-----------|---------|---------|
@@ -174,7 +167,7 @@
 
 ---
 
-## 📁 Project Structure
+<h2 id="project-structure">📁 Project Structure</h2>
 
 ```
 asuracore/
@@ -299,7 +292,7 @@ asuracore/
 
 ---
 
-## 🚀 Quick Start
+<h2 id="quick-start">🚀 Quick Start</h2>
 
 ### For Local Development (5 minutes)
 
@@ -353,7 +346,7 @@ curl https://<your-domain>/api/asura/<server-endpoint>
 
 ---
 
-## 🏗️ System Architecture Overview
+<h2 id="system-architecture-overview">🏗️ System Architecture Overview</h2>
 
 ### Three-Tier Architecture
 
@@ -415,9 +408,9 @@ DEV -->|Telemetry Data| MQ
 
 ---
 
-## 📊 Core Components
+<h2 id="core-components">📊 Core Components</h2>
 
-### 2.1 Frontend (React)
+### <span id="21-frontend-react">2.1 Frontend (React)</span>
 
 **Technology Stack:**
 - React 18.x with Hooks
@@ -504,7 +497,7 @@ export default apiClient;
 
 ---
 
-### 2.2 Backend (Fastify)
+### <span id="22-backend-fastify">2.2 Backend (Fastify)</span>
 
 **Technology Stack:**
 - Fastify v4.x (micro-framework)
@@ -660,7 +653,7 @@ export async function projectRoutes(fastify) {
 
 ---
 
-### 2.3 Database Schema
+### <span id="23-database-schema">2.3 Database Schema</span>
 
 #### PostgreSQL (Relational Data)
 
@@ -810,7 +803,7 @@ from(bucket: "telemetry")
 
 ---
 
-### 2.4 MQTT Broker (EMQX)
+### <span id="24-mqtt-broker-emqx">2.4 MQTT Broker (EMQX)</span>
 
 **Message Bus for Device-Backend Communication**
 
@@ -883,7 +876,7 @@ Message throughput: 1,000+ msg/sec (configurable)
 
 ---
 
-### 2.5 IoT Firmware (ESP32/Arduino)
+### <span id="25-iot-firmware-esp32arduino">2.5 IoT Firmware (ESP32/Arduino)</span>
 
 **AsuraCore Arduino Library**
 
@@ -958,7 +951,7 @@ Channels 10+: Dashboard → Device (controls)
 
 ---
 
-### 2.6 WebSocket Layer
+### <span id="26-websocket-layer">2.6 WebSocket Layer</span>
 
 **Real-Time Communication with Frontend**
 
@@ -1003,7 +996,7 @@ Channels 10+: Dashboard → Device (controls)
 
 ---
 
-## 🔄 Data Flow Patterns
+<h2 id="data-flow-patterns">🔄 Data Flow Patterns</h2>
 
 ### Pattern 1: Device Uploads Telemetry
 
@@ -1047,7 +1040,7 @@ Step 10: Optional: Device publishes telemetry (feedback)
 
 ---
 
-## 🔐 Security Architecture (Deep Dive)
+<h2 id="security-architecture-deep-dive">🔐 Security Architecture (Deep Dive)</h2>
 
 ### Layer 1: Network Security
 
@@ -1145,7 +1138,7 @@ MQTT_PASSWORD=<random 12+ chars>
 
 ---
 
-## 🚀 Scalability Considerations
+<h2 id="scalability-considerations">🚀 Scalability Considerations</h2>
 
 ### Horizontal Scaling
 
@@ -1194,7 +1187,7 @@ Load distributed automatically
 
 ---
 
-## 📸 Application Screenshots
+<h2 id="application-screenshots">📸 Application Screenshots</h2>
 
 ### Login Page
 
@@ -1310,7 +1303,7 @@ Load distributed automatically
 
 ---
 
-## 💻 Frontend Development
+<h2 id="frontend-development">💻 Frontend Development</h2>
 
 ### Local Development Setup
 
@@ -1364,7 +1357,7 @@ export function ChartWidget({ deviceId, channel, config }) {
 
 ---
 
-## 🔧 Backend Development
+<h2 id="backend-development">🔧 Backend Development</h2>
 
 ### Adding New Service
 
@@ -1393,7 +1386,7 @@ export const customService = {
 
 ---
 
-## 📡 Firmware Development
+<h2 id="firmware-development">📡 Firmware Development</h2>
 
 ### Simple Example
 
@@ -1430,7 +1423,7 @@ void loop() {
 
 ---
 
-## 🖥️ Environment Configuration (Complete)
+<h2 id="environment-configuration-complete">🖥️ Environment Configuration (Complete)</h2>
 
 ### Required Variables
 
@@ -1476,7 +1469,7 @@ openssl rand -hex 32
 
 ---
 
-## ✅ Prerequisites
+<h2 id="prerequisites">✅ Prerequisites</h2>
 
 - Docker 20.x+, Docker Compose 2.x+
 - Node.js 18+ (for development)
@@ -1484,7 +1477,7 @@ openssl rand -hex 32
 
 ---
 
-## 🚀 Installation Steps
+<h2 id="installation-steps">🚀 Installation Steps</h2>
 
 ### Step 1: Clone Repository
 
@@ -1524,7 +1517,7 @@ docker-compose ps
 
 ---
 
-## 🐳 Docker Setup
+<h2 id="docker-setup">🐳 Docker Setup</h2>
 
 ### Override for Development
 
@@ -1561,7 +1554,7 @@ docker-compose exec influxdb influx
 
 ---
 
-## 🔄 Reverse Proxy Setup (Nginx)
+<h2 id="reverse-proxy-setup-nginx">🔄 Reverse Proxy Setup (Nginx)</h2>
 
 ### Using Nginx Proxy Manager
 
@@ -1599,7 +1592,7 @@ server {
 
 ---
 
-## 🔒 SSL Configuration
+<h2 id="ssl-configuration">🔒 SSL Configuration</h2>
 
 ```bash
 # Using Let's Encrypt
@@ -1612,7 +1605,7 @@ certbot certonly --webroot -w /var/www/html \
 
 ---
 
-## ✔️ Deployment Verification Checklist
+<h2 id="deployment-verification-checklist">✔️ Deployment Verification Checklist</h2>
 
 ```bash
 # Docker Services
@@ -1636,7 +1629,7 @@ curl http://localhost:4000/<server-endpoint>
 
 ---
 
-## 📊 Monitoring and Observability
+<h2 id="monitoring-and-observability">📊 Monitoring and Observability</h2>
 
 ### Health Checks
 
@@ -1669,7 +1662,7 @@ docker-compose logs backend | grep "ERROR"
 
 ---
 
-## 🔒 Database Operations
+<h2 id="database-operations">🔒 Database Operations</h2>
 
 ### PostgreSQL Backup
 
@@ -1694,7 +1687,7 @@ docker-compose exec postgres psql -U asuracore -d asuracore \
 
 ---
 
-## 📡 MQTT Operations
+<h2 id="mqtt-operations">📡 MQTT Operations</h2>
 
 ### Testing
 
@@ -1713,7 +1706,7 @@ docker-compose exec emqx mosquitto_sub -h localhost \
 
 ---
 
-## 📝 Logs and Debugging
+<h2 id="logs-and-debugging">📝 Logs and Debugging</h2>
 
 ### Backend
 
@@ -1731,7 +1724,7 @@ docker-compose logs postgres | grep "duration"
 
 ---
 
-## 🔄 Secret Rotation Procedures
+<h2 id="secret-rotation-procedures">🔄 Secret Rotation Procedures</h2>
 
 ### Rotate JWT Secret
 
@@ -1766,7 +1759,7 @@ docker-compose up -d backend
 
 ---
 
-## ⚡ Performance Optimization
+<h2 id="performance-optimization">⚡ Performance Optimization</h2>
 
 ### Frontend
 
@@ -1814,7 +1807,7 @@ ANALYZE;
 
 ---
 
-## 🎯 Troubleshooting Guide
+<h2 id="troubleshooting-guide">🎯 Troubleshooting Guide</h2>
 
 ### Backend Won't Start
 
@@ -1857,7 +1850,7 @@ Serial.println("Connecting...");
 
 ---
 
-## ❓ Frequently Asked Questions
+<h2 id="frequently-asked-questions">❓ Frequently Asked Questions</h2>
 
 **Q: How many devices can I connect?**  
 A: Single instance: 100-500. With clustering: 10,000+
@@ -1879,7 +1872,7 @@ A: No built-in compliance. Add data residency, encryption, audit logging as need
 
 ---
 
-## 🔄 Quick Reference Commands
+<h2 id="quick-reference-commands">🔄 Quick Reference Commands</h2>
 
 ### Docker
 
@@ -1913,7 +1906,7 @@ docker-compose exec emqx mosquitto_pub -t "test" -m "hello"
 
 ---
 
-## 📋 Changelog
+<h2 id="changelog">📋 Changelog</h2>
 
 ### Version 1.1.0 (March 24, 2026)
 
@@ -1937,7 +1930,7 @@ docker-compose exec emqx mosquitto_pub -t "test" -m "hello"
 
 ---
 
-## 🤝 Contributing
+<h2 id="contributing">🤝 Contributing</h2>
 
 Contributions welcome! Please:
 
@@ -1948,7 +1941,7 @@ Contributions welcome! Please:
 
 ---
 
-## 📄 License
+<h2 id="license">📄 License</h2>
 
 This project is licensed under the **MIT License** - Free for personal & commercial use.
 
@@ -1962,7 +1955,7 @@ See [LICENSE](LICENSE) file for complete license text and terms.
 
 ---
 
-## 🎯 Community
+<h2 id="community">🎯 Community</h2>
 
 - 🐛 **Issues:** Report on GitHub
 - 💬 **Discussions:** Ask questions
