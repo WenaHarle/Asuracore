@@ -359,60 +359,48 @@ curl https://<your-domain>/api/asura/<server-endpoint>
 
 AsuraCore uses a **distributed three-tier architecture** optimized for scalability and real-time IoT applications:
 
-```
-┌─────────────────────────────────────────────────────────────────────────┐
-│                         PRESENTATION TIER                                │
-│  ┌───────────────────────────────────────────────────────────────────┐  │
-│  │  React Frontend (React 18 + Vite)                                │  │
-│  │  • SPA (Single Page Application)                                 │  │
-│  │  • Component-based architecture                                  │  │
-│  │  • Context API for state management                              │  │
-│  │  • WebSocket client for real-time updates                        │  │
-│  │  • Responsive design (desktop/mobile)                            │  │
-│  └───────────────────────────────────────────────────────────────────┘  │
-│                                ↓                                         │
-│                   REST API + WebSocket                                   │
-│                                ↓                                         │
-└─────────────────────────────────────────────────────────────────────────┘
+```mermaid
+flowchart TD
 
-┌─────────────────────────────────────────────────────────────────────────┐
-│                       APPLICATION TIER                                   │
-│  ┌───────────────────────────────────────────────────────────────────┐  │
-│  │  Fastify Backend Server (Node.js 18+)                            │  │
-│  │  • REST API endpoints                                            │  │
-│  │  • WebSocket server for real-time comms                          │  │
-│  │  • JWT authentication middleware                                 │  │
-│  │  • Business logic services                                       │  │
-│  │  • Request validation & error handling                           │  │
-│  │  • MQTT client for device communication                          │  │
-│  └───────────────────────────────────────────────────────────────────┘  │
-│                                ↓                                         │
-│                 MQTT + Database Queries                                  │
-│                                ↓                                         │
-└─────────────────────────────────────────────────────────────────────────┘
+%% =======================
+%% PRESENTATION TIER
+%% =======================
+subgraph PT[Presentation Tier]
+    FE[React Frontend\nReact 18 + Vite\nSPA, Context API,\nWebSocket Client]
+end
 
-┌─────────────────────────────────────────────────────────────────────────┐
-│                          DATA TIER                                       │
-│  ┌──────────────────────┐  ┌──────────────────────┐  ┌──────────────┐  │
-│  │  PostgreSQL 15       │  │  InfluxDB 2.x        │  │  EMQX Broker │  │
-│  │  (Relational Data)   │  │  (Time-Series)       │  │  (MQTT)      │  │
-│  │  • Users             │  │  • Telemetry data    │  │  • Pub/Sub   │  │
-│  │  • Projects          │  │  • Metrics           │  │  • QoS 1     │  │
-│  │  • Devices           │  │  • Analytics         │  │  • Clustering│  │
-│  │  • Dashboards        │  │  • Retention policy  │  │  • WebSocket │  │
-│  │  • Widgets configs   │  │  • Downsampling      │  │              │  │
-│  └──────────────────────┘  └──────────────────────┘  └──────────────┘  │
-│                                                                          │
-│  ↓ Connected to IoT Devices via MQTT                                   │
-│                                                                          │
-│  ┌──────────────────────────────────────────────────────────────────┐  │
-│  │  IoT Devices (ESP32, ESP8266, Arduino, etc.)                     │  │
-│  │  • PubSubClient MQTT library                                     │  │
-│  │  • WiFi connectivity                                             │  │
-│  │  • Sensor data collection & publishing                           │  │
-│  │  • Command subscription & execution                              │  │
-│  └──────────────────────────────────────────────────────────────────┘  │
-└─────────────────────────────────────────────────────────────────────────┘
+%% =======================
+%% APPLICATION TIER
+%% =======================
+subgraph AT[Application Tier]
+    BE[Fastify Backend\nNode.js 18+\nREST API, JWT,\nWebSocket Server,\nMQTT Client]
+end
+
+%% =======================
+%% DATA TIER
+%% =======================
+subgraph DT[Data Tier]
+    PG[(PostgreSQL\nRelational Data)]
+    IF[(InfluxDB\nTime-Series Data)]
+    MQ[EMQX Broker\nMQTT]
+end
+
+%% =======================
+%% IOT DEVICES
+%% =======================
+subgraph IOT[IoT Devices]
+    DEV[ESP32 / ESP8266 / Arduino\nSensors & Actuators\nMQTT Pub/Sub]
+end
+
+%% =======================
+%% CONNECTIONS
+%% =======================
+FE -->|REST API + WebSocket| BE
+BE -->|SQL Queries| PG
+BE -->|Time-Series Writes| IF
+BE -->|MQTT Publish/Subscribe| MQ
+MQ -->|MQTT| DEV
+DEV -->|Telemetry Data| MQ
 ```
 
 ### Architecture Benefits
