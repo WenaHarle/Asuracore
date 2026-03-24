@@ -7,67 +7,67 @@
 ## 📋 Table of Contents
 
 ### 1. Getting Started & Overview
-- [Features](#-key-features)
-- [Tech Stack](#-tech-stack)
-- [Project Structure](#-project-structure)
-- [Quick Start](#-quick-start)
-- [Architecture Overview](#-system-architecture-overview)
+- [Features](#key-features)
+- [Tech Stack](#tech-stack)
+- [Project Structure](#project-structure)
+- [Quick Start](#quick-start)
+- [Architecture Overview](#system-architecture-overview)
 
 ### 2. Architecture & System Design
-- [System Architecture Overview](#-system-architecture-overview)
-- [Core Components](#-core-components)
+- [System Architecture Overview](#system-architecture-overview)
+- [Core Components](#core-components)
 - [Frontend Layer](#21-frontend-react)
 - [Backend Layer](#22-backend-fastify)
-- [Database Schema](#-database-schema)
+- [Database Schema](#23-database-schema)
 - [MQTT Broker Setup](#24-mqtt-broker-emqx)
 - [Firmware Architecture](#25-iot-firmware-esp32arduino)
 - [WebSocket Implementation](#26-websocket-layer)
-- [Data Flow Patterns](#-data-flow-patterns)
-- [Security Architecture](#-security-architecture-deep-dive)
-- [Scalability & Performance](#-scalability-considerations)
+- [Data Flow Patterns](#data-flow-patterns)
+- [Security Architecture](#security-architecture-deep-dive)
+- [Scalability & Performance](#scalability-considerations)
 
 ### 3. User Interface & Features
-- [Application Screenshots](#-application-screenshots)
-- [Supported Widgets](#-dashboard-widget-types)
-- [UI Features](#-key-features-demonstrated)
-- [Usage Examples](#-usage-tips)
+- [Application Screenshots](#application-screenshots)
+- [Supported Widgets](#dashboard-widget-types)
+- [UI Features](#key-features-demonstrated)
+- [Usage Examples](#usage-tips)
 
 ### 4. Development Guide
-- [API Client Documentation](#-api-client-usage-guide)
-- [API Modules Reference](#-api-modules-reference)
-- [Frontend Development](#-frontend-development)
-- [Backend Development](#-backend-development)
-- [Firmware Development](#-firmware-development)
+- [API Client Documentation](#api-client-usage-guide)
+- [API Modules Reference](#api-modules-reference)
+- [Frontend Development](#frontend-development)
+- [Backend Development](#backend-development)
+- [Firmware Development](#firmware-development)
 
 ### 5. Configuration & Deployment
-- [Environment Variables](#-environment-configuration-complete)
-- [Prerequisites](#-prerequisites)
-- [Installation](#-installation-steps)
-- [Docker Setup](#-docker-setup)
-- [Reverse Proxy Configuration](#-reverse-proxy-setup-nginx)
-- [SSL/TLS Setup](#-ssl-configuration)
-- [Verification](#-deployment-verification-checklist)
+- [Environment Variables](#environment-configuration-complete)
+- [Prerequisites](#prerequisites)
+- [Installation](#installation-steps)
+- [Docker Setup](#docker-setup)
+- [Reverse Proxy Configuration](#reverse-proxy-setup-nginx)
+- [SSL/TLS Setup](#ssl-configuration)
+- [Verification](#deployment-verification-checklist)
 
 ### 6. Operations & Maintenance
-- [Monitoring & Health Checks](#-monitoring-and-observability)
-- [Database Management](#-database-operations)
-- [MQTT Operations](#-mqtt-operations)
-- [Logs & Debugging](#-logs-and-debugging)
-- [Backup & Recovery](#-backup-and-recovery)
-- [Secret Rotation](#-secret-rotation-procedures)
-- [Performance Optimization](#-performance-optimization)
+- [Monitoring & Health Checks](#monitoring-and-observability)
+- [Database Management](#database-operations)
+- [MQTT Operations](#mqtt-operations)
+- [Logs & Debugging](#logs-and-debugging)
+- [Backup & Recovery](#backup-and-recovery)
+- [Secret Rotation](#secret-rotation-procedures)
+- [Performance Optimization](#performance-optimization)
 
 ### 7. Troubleshooting & Support
-- [Common Issues](#-troubleshooting-guide)
-- [FAQ](#-frequently-asked-questions)
-- [Getting Help](#-getting-help)
-- [Quick Reference Commands](#-quick-reference-commands)
+- [Common Issues](#troubleshooting-guide)
+- [FAQ](#frequently-asked-questions)
+- [Getting Help](#getting-help)
+- [Quick Reference Commands](#quick-reference-commands)
 
 ### 8. Additional Resources
-- [Changelog](#-changelog)
-- [Contributing](#-contributing)
-- [License](#-license)
-- [Support & Community](#-community)
+- [Changelog](#changelog)
+- [Contributing](#contributing)
+- [License](#license)
+- [Support & Community](#community)
 
 ---
 
@@ -359,60 +359,48 @@ curl https://<your-domain>/api/asura/<server-endpoint>
 
 AsuraCore uses a **distributed three-tier architecture** optimized for scalability and real-time IoT applications:
 
-```
-┌─────────────────────────────────────────────────────────────────────────┐
-│                         PRESENTATION TIER                                │
-│  ┌───────────────────────────────────────────────────────────────────┐  │
-│  │  React Frontend (React 18 + Vite)                                │  │
-│  │  • SPA (Single Page Application)                                 │  │
-│  │  • Component-based architecture                                  │  │
-│  │  • Context API for state management                              │  │
-│  │  • WebSocket client for real-time updates                        │  │
-│  │  • Responsive design (desktop/mobile)                            │  │
-│  └───────────────────────────────────────────────────────────────────┘  │
-│                                ↓                                         │
-│                   REST API + WebSocket                                   │
-│                                ↓                                         │
-└─────────────────────────────────────────────────────────────────────────┘
+```mermaid
+flowchart TD
 
-┌─────────────────────────────────────────────────────────────────────────┐
-│                       APPLICATION TIER                                   │
-│  ┌───────────────────────────────────────────────────────────────────┐  │
-│  │  Fastify Backend Server (Node.js 18+)                            │  │
-│  │  • REST API endpoints                                            │  │
-│  │  • WebSocket server for real-time comms                          │  │
-│  │  • JWT authentication middleware                                 │  │
-│  │  • Business logic services                                       │  │
-│  │  • Request validation & error handling                           │  │
-│  │  • MQTT client for device communication                          │  │
-│  └───────────────────────────────────────────────────────────────────┘  │
-│                                ↓                                         │
-│                 MQTT + Database Queries                                  │
-│                                ↓                                         │
-└─────────────────────────────────────────────────────────────────────────┘
+%% =======================
+%% PRESENTATION TIER
+%% =======================
+subgraph PT[Presentation Tier]
+    FE[React Frontend\nReact 18 + Vite\nSPA, Context API,\nWebSocket Client]
+end
 
-┌─────────────────────────────────────────────────────────────────────────┐
-│                          DATA TIER                                       │
-│  ┌──────────────────────┐  ┌──────────────────────┐  ┌──────────────┐  │
-│  │  PostgreSQL 15       │  │  InfluxDB 2.x        │  │  EMQX Broker │  │
-│  │  (Relational Data)   │  │  (Time-Series)       │  │  (MQTT)      │  │
-│  │  • Users             │  │  • Telemetry data    │  │  • Pub/Sub   │  │
-│  │  • Projects          │  │  • Metrics           │  │  • QoS 1     │  │
-│  │  • Devices           │  │  • Analytics         │  │  • Clustering│  │
-│  │  • Dashboards        │  │  • Retention policy  │  │  • WebSocket │  │
-│  │  • Widgets configs   │  │  • Downsampling      │  │              │  │
-│  └──────────────────────┘  └──────────────────────┘  └──────────────┘  │
-│                                                                          │
-│  ↓ Connected to IoT Devices via MQTT                                   │
-│                                                                          │
-│  ┌──────────────────────────────────────────────────────────────────┐  │
-│  │  IoT Devices (ESP32, ESP8266, Arduino, etc.)                     │  │
-│  │  • PubSubClient MQTT library                                     │  │
-│  │  • WiFi connectivity                                             │  │
-│  │  • Sensor data collection & publishing                           │  │
-│  │  • Command subscription & execution                              │  │
-│  └──────────────────────────────────────────────────────────────────┘  │
-└─────────────────────────────────────────────────────────────────────────┘
+%% =======================
+%% APPLICATION TIER
+%% =======================
+subgraph AT[Application Tier]
+    BE[Fastify Backend\nNode.js 18+\nREST API, JWT,\nWebSocket Server,\nMQTT Client]
+end
+
+%% =======================
+%% DATA TIER
+%% =======================
+subgraph DT[Data Tier]
+    PG[(PostgreSQL\nRelational Data)]
+    IF[(InfluxDB\nTime-Series Data)]
+    MQ[EMQX Broker\nMQTT]
+end
+
+%% =======================
+%% IOT DEVICES
+%% =======================
+subgraph IOT[IoT Devices]
+    DEV[ESP32 / ESP8266 / Arduino\nSensors & Actuators\nMQTT Pub/Sub]
+end
+
+%% =======================
+%% CONNECTIONS
+%% =======================
+FE -->|REST API + WebSocket| BE
+BE -->|SQL Queries| PG
+BE -->|Time-Series Writes| IF
+BE -->|MQTT Publish/Subscribe| MQ
+MQ -->|MQTT| DEV
+DEV -->|Telemetry Data| MQ
 ```
 
 ### Architecture Benefits
