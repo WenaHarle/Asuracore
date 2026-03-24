@@ -65,7 +65,6 @@
 
 ### 8. Additional Resources
 - [Changelog](#-changelog)
-- [Roadmap](#-future-roadmap)
 - [Contributing](#-contributing)
 - [License](#-license)
 - [Support & Community](#-community)
@@ -1947,25 +1946,6 @@ docker-compose exec emqx mosquitto_pub -t "test" -m "hello"
 - ✅ bcrypt hashing
 - ✅ Device key auth
 - ✅ Proper .gitignore
-
----
-
-## 🚀 Future Roadmap
-
-**Version 1.2.0 (Q2 2026)**
-- [ ] Kubernetes support
-- [ ] GraphQL API
-- [ ] Email notifications
-- [ ] OPC-UA integration
-- [ ] Modbus TCP support
-
-**Version 2.0.0 (Q4 2026)**
-- [ ] Multi-tenant support
-- [ ] Advanced roles & permissions
-- [ ] Data encryption
-- [ ] GDPR compliance
-- [ ] Mobile app
-- [ ] ML anomaly detection
 
 ---
 
