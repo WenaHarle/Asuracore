@@ -1,236 +1,103 @@
 /*
- * AsuraCore Switch & Slider Example
- * 
- * Demonstrates bidirectional control:
- * - Switch widgets to control relays/LEDs
- * - Slider widgets for dimming/speed control
- * - Button state feedback to dashboard
- * 
- * Dashboard Widget Setup:
- * - Channel 10: Switch widget (Relay 1)
- * - Channel 11: Switch widget (Relay 2)  
- * - Channel 12: Switch widget (LED On/Off)
- * - Channel 13: Slider widget (LED Brightness 0-255)
- * - Channel 14: Slider widget (Motor Speed 0-100)
- * - Channel 0: Gauge widget (Button state)
- * - Channel 1: Gauge widget (Potentiometer)
- * 
- * Get your DEVICE_KEY from AsuraCore Dashboard:
- * 1. Go to Dashboard -> Devices
- * 2. Create a new device or select existing one
- * 3. Copy the "Device Key" (64 character hex string)
+ * AsuraCore - Switch & Slider Example
+ * ============================================================================
+ *
+ * Contoh kontrol perangkat dari dashboard AsuraCore.
+ *
+ * Yang perlu kamu lakukan:
+ *   1. Isi WIFI_SSID, WIFI_PASS, MQTT_SERVER di bawah.
+ *   2. Tempel DEVICE_KEY dari dashboard AsuraCore.
+ *   3. Sesuaikan PIN sesuai wiring kamu (kalau perlu).
+ *   4. Upload ke ESP32/ESP8266. Selesai!
+ *
+ * Channel dashboard:
+ *   CH 0  - Gauge   : Status tombol
+ *   CH 1  - Gauge   : Nilai potensiometer (%)
+ *   CH 10 - Switch  : Relay 1
+ *   CH 11 - Switch  : Relay 2
+ *   CH 12 - Switch  : LED ON/OFF
+ *   CH 13 - Slider  : Brightness LED (0-255)
+ *   CH 14 - Slider  : Kecepatan Motor (0-100%)
+ *
+ * Cara dapat DEVICE_KEY:
+ *   Dashboard -> Devices -> Buat/pilih device -> Copy Device Key
  */
 
 #include "AsuraCore.h"
 
-// =============================================================================
-// CONFIGURATION - UPDATE THESE!
-// =============================================================================
+// ============================================================================
+// 1. KONFIGURASI WiFi & SERVER (UBAH SESUAI PUNYAMU!)
+// ============================================================================
 
-#define WIFI_SSID     "YourWiFiSSID"
-#define WIFI_PASS     "YourWiFiPassword"
-#define MQTT_SERVER   "<your_asuracore_server_ip_or_domain>"  // e.g., "192.168.1.100" or "asura.example.com"
-#define MQTT_PORT     1883
+#define WIFI_SSID    "aicenter"
+#define WIFI_PASS    "aicenter"
+#define MQTT_SERVER  "10.39.30.25"   // contoh: "192.168.1.100"
+#define DEVICE_KEY   "32bd45de4a6f3052926d44039a8b981b13fc2f7a2a034a1a7bf674ab04f59526"
 
-// Get this from AsuraCore Dashboard -> Device Detail -> Device Key
-#define DEVICE_KEY    "<paste_your_64_char_device_key_here>"
+// ============================================================================
+// 2. PIN HARDWARE (sesuaikan dengan rangkaianmu)
+// ============================================================================
 
-// =============================================================================
-// HARDWARE PINS
-// =============================================================================
+#define RELAY1_PIN  16
+#define RELAY2_PIN  17
+#define LED_PIN     2     // LED bawaan, support PWM
+#define MOTOR_PIN   5     // Pin PWM untuk motor/fan
+#define BUTTON_PIN  0     // Tombol BOOT
+#define POT_PIN     34    // Potensiometer (analog)
 
-#define RELAY1_PIN    16
-#define RELAY2_PIN    17
-#define LED_PIN       2     // Built-in LED (PWM capable)
-#define MOTOR_PIN     5     // PWM for motor/fan speed
-#define BUTTON_PIN    0     // Boot button
-#define POT_PIN       34    // Potentiometer (ADC)
-
-// =============================================================================
-// CHANNEL MAPPING
-// =============================================================================
-
-// Sensors: ESP -> Dashboard (display on gauge/chart widgets)
-#define CH_BUTTON         0    // Button state
-#define CH_POT            1    // Potentiometer value
-
-// Controls: Dashboard -> ESP (use switch/slider widgets)
-#define CH_RELAY1         10   // Switch widget -> Relay 1
-#define CH_RELAY2         11   // Switch widget -> Relay 2
-#define CH_LED_ONOFF      12   // Switch widget -> LED On/Off
-#define CH_LED_BRIGHTNESS 13   // Slider widget -> LED Brightness (0-255)
-#define CH_MOTOR_SPEED    14   // Slider widget -> Motor Speed (0-100)
-
-// =============================================================================
-// GLOBALS
-// =============================================================================
+// ============================================================================
+// 3. INISIALISASI ASURACORE
+// ============================================================================
 
 AsuraCore asura(DEVICE_KEY);
 
-bool ledEnabled = false;
-int ledBrightness = 128;
-int motorSpeed = 0;
-
-// =============================================================================
-// SWITCH HANDLERS (0 or 1)
-// =============================================================================
-
-// Relay 1 - Simple on/off switch
-ASURA_WRITE(CH_RELAY1) {
-  int value = param.asInt();  // 0 or 1
-  digitalWrite(RELAY1_PIN, value);
-  
-  Serial.print("[Switch] Relay 1: ");
-  Serial.println(value ? "ON" : "OFF");
-}
-
-// Relay 2 - Simple on/off switch
-ASURA_WRITE(CH_RELAY2) {
-  int value = param.asInt();
-  digitalWrite(RELAY2_PIN, value);
-  
-  Serial.print("[Switch] Relay 2: ");
-  Serial.println(value ? "ON" : "OFF");
-}
-
-// LED On/Off - Enable/disable LED (brightness controlled separately)
-ASURA_WRITE(CH_LED_ONOFF) {
-  ledEnabled = param.asBool();
-  
-  // Apply brightness only if enabled
-  if (ledEnabled) {
-    analogWrite(LED_PIN, ledBrightness);
-  } else {
-    analogWrite(LED_PIN, 0);
-  }
-  
-  Serial.print("[Switch] LED: ");
-  Serial.println(ledEnabled ? "ENABLED" : "DISABLED");
-}
-
-// =============================================================================
-// SLIDER HANDLERS (range values)
-// =============================================================================
-
-// LED Brightness - Slider 0-255
-ASURA_WRITE(CH_LED_BRIGHTNESS) {
-  ledBrightness = param.asInt();
-  
-  // Clamp to valid range
-  if (ledBrightness < 0) ledBrightness = 0;
-  if (ledBrightness > 255) ledBrightness = 255;
-  
-  // Apply only if LED is enabled
-  if (ledEnabled) {
-    analogWrite(LED_PIN, ledBrightness);
-  }
-  
-  Serial.print("[Slider] LED Brightness: ");
-  Serial.print(ledBrightness);
-  Serial.println("/255");
-}
-
-// Motor Speed - Slider 0-100 (percentage)
-ASURA_WRITE(CH_MOTOR_SPEED) {
-  motorSpeed = param.asInt();
-  
-  // Clamp to valid range
-  if (motorSpeed < 0) motorSpeed = 0;
-  if (motorSpeed > 100) motorSpeed = 100;
-  
-  // Convert percentage to PWM (0-255)
-  int pwmValue = map(motorSpeed, 0, 100, 0, 255);
-  analogWrite(MOTOR_PIN, pwmValue);
-  
-  Serial.print("[Slider] Motor Speed: ");
-  Serial.print(motorSpeed);
-  Serial.println("%");
-}
-
-// =============================================================================
-// SETUP
-// =============================================================================
+// ============================================================================
+// 4. SETUP - Hubungkan channel dashboard ke pin
+// ============================================================================
 
 void setup() {
   Serial.begin(115200);
-  delay(1000);
-  
-  Serial.println();
-  Serial.println("========================================");
-  Serial.println("   AsuraCore Switch & Slider Example");
-  Serial.println("========================================");
-  Serial.println();
-  
-  // Initialize output pins
-  pinMode(RELAY1_PIN, OUTPUT);
-  pinMode(RELAY2_PIN, OUTPUT);
-  pinMode(LED_PIN, OUTPUT);
-  pinMode(MOTOR_PIN, OUTPUT);
-  
-  // Initialize input pins
-  pinMode(BUTTON_PIN, INPUT_PULLUP);
-  
-  // Set initial states (all OFF)
-  digitalWrite(RELAY1_PIN, LOW);
-  digitalWrite(RELAY2_PIN, LOW);
-  analogWrite(LED_PIN, 0);
-  analogWrite(MOTOR_PIN, 0);
-  
-  // Configure AsuraCore
-  asura.setDebug(true);
-  asura.setInterval(2000);  // Send sensor data every 2 seconds
-  
-  // Connect to WiFi and MQTT
-  asura.begin(WIFI_SSID, WIFI_PASS, MQTT_SERVER, MQTT_PORT);
-  
-  Serial.println();
-  Serial.println("Dashboard Widget Setup:");
-  Serial.println("  CH 10: Switch -> Relay 1");
-  Serial.println("  CH 11: Switch -> Relay 2");
-  Serial.println("  CH 12: Switch -> LED On/Off");
-  Serial.println("  CH 13: Slider (0-255) -> LED Brightness");
-  Serial.println("  CH 14: Slider (0-100) -> Motor Speed");
-  Serial.println("  CH 0:  Gauge -> Button State");
-  Serial.println("  CH 1:  Gauge -> Potentiometer");
-  Serial.println();
+
+  asura.setDebug(true);       // Tampilkan log di Serial Monitor
+  asura.setInterval(2000);    // Kirim data sensor tiap 2 detik
+
+  // Hubungkan ke WiFi & server
+  asura.begin(WIFI_SSID, WIFI_PASS, MQTT_SERVER);
+
+  // ---- KONTROL DARI DASHBOARD KE ALAT ----
+  asura.bindSwitch(10, RELAY1_PIN);              // Switch ch10 -> Relay 1
+  asura.bindSwitch(11, RELAY2_PIN);              // Switch ch11 -> Relay 2
+  asura.bindSlider(13, LED_PIN,   0, 255);       // Slider ch13 -> LED brightness
+  asura.bindSlider(14, MOTOR_PIN, 0, 100);       // Slider ch14 -> Motor speed (%)
+
+  // LED ON/OFF (ch12) butuh logika kustom karena kerja bareng slider brightness.
+  // Lihat handler di bawah.
+  asura.onReceive(12, onLedSwitch);
+
+  // ---- BACA SENSOR -> KIRIM KE DASHBOARD ----
+  asura.bindSensor(0, BUTTON_PIN, DIGITAL_INVERTED);  // Tombol (INPUT_PULLUP)
+  asura.bindSensor(1, POT_PIN,    ANALOG_PERCENT);    // Potensio dalam %
 }
 
-// =============================================================================
-// LOOP
-// =============================================================================
+// ============================================================================
+// 5. LOOP - cukup panggil run(), semua otomatis!
+// ============================================================================
 
 void loop() {
-  // Run AsuraCore (maintains WiFi, MQTT, handles commands)
   asura.run();
-  
-  // Read sensors and send to dashboard
-  static unsigned long lastRead = 0;
-  if (millis() - lastRead > 2000) {
-    lastRead = millis();
-    
-    // Read button state (inverted because INPUT_PULLUP)
-    int buttonState = !digitalRead(BUTTON_PIN);
-    asura.write(CH_BUTTON, buttonState);
-    
-    // Read potentiometer (0-4095 on ESP32, 0-1023 on ESP8266)
-    #ifdef ESP32
-      int potValue = analogRead(POT_PIN);
-      int potPercent = map(potValue, 0, 4095, 0, 100);
-    #else
-      int potValue = analogRead(A0);
-      int potPercent = map(potValue, 0, 1023, 0, 100);
-    #endif
-    asura.write(CH_POT, potPercent);
-    
-    // Debug output
-    Serial.println("--- Sensor Readings ---");
-    Serial.print("Button: ");
-    Serial.println(buttonState ? "PRESSED" : "RELEASED");
-    Serial.print("Potentiometer: ");
-    Serial.print(potPercent);
-    Serial.println("%");
-    Serial.println();
-  }
-  
-  delay(10);
+}
+
+// ============================================================================
+// 6. HANDLER KUSTOM (opsional)
+// ============================================================================
+
+// LED ON/OFF: pakai brightness terakhir dari slider ch13.
+// Saat OFF -> matikan. Saat ON -> nyalakan dengan brightness yang dipilih.
+void onLedSwitch(AsuraParam param) {
+  bool on = param.asBool();
+  int brightness = (int)asura.read(13);   // ambil nilai slider ch13
+  analogWrite(LED_PIN, on ? brightness : 0);
+
+  Serial.print("[LED] ");
+  Serial.println(on ? "ON" : "OFF");
 }
