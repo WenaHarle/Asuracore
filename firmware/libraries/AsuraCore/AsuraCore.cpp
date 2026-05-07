@@ -18,6 +18,9 @@ AsuraWriteHandler _asuraWriteHandlers[ASURA_MAX_CHANNELS] = {nullptr};
 AsuraCore::AsuraCore(const char* deviceKey)
   : _deviceKey(deviceKey)
   , _mqttClient(_wifiClient)
+  , _numSensorBindings(0)
+  , _numSliderBindings(0)
+  , _lastSensorRead(0)
   , _lastTelemetry(0)
   , _lastStatus(0)
   , _lastReconnect(0)
@@ -25,13 +28,19 @@ AsuraCore::AsuraCore(const char* deviceKey)
   , _debug(false)
 {
   _instance = this;
-  
+
   for (int i = 0; i < ASURA_MAX_CHANNELS; i++) {
     _channels[i] = 0;
     _channelDirty[i] = false;
     _handlers[i] = nullptr;
+    _switchPins[i] = -1;
   }
-  
+
+  for (int i = 0; i < ASURA_MAX_BINDINGS; i++) {
+    _sensorBindings[i].active = false;
+    _sliderBindings[i].active = false;
+  }
+
   // Build topics using device_key
   snprintf(_topicCommand, sizeof(_topicCommand), "device/%s/command", _deviceKey);
   snprintf(_topicStatus, sizeof(_topicStatus), "device/%s/status", _deviceKey);
@@ -46,13 +55,13 @@ void AsuraCore::begin(const char* ssid, const char* password, const char* mqttSe
   _password = password;
   _mqttServer = mqttServer;
   _mqttPort = mqttPort;
-  
+
   Serial.println();
   Serial.println("================================================");
   Serial.println("         AsuraCore IoT Platform");
   Serial.println("================================================");
   Serial.println();
-  
+
   // Copy macro-registered handlers
   for (int i = 0; i < ASURA_MAX_CHANNELS; i++) {
     if (_asuraWriteHandlers[i] != nullptr) {
@@ -63,7 +72,7 @@ void AsuraCore::begin(const char* ssid, const char* password, const char* mqttSe
       }
     }
   }
-  
+
   _setupWiFi();
   _setupMQTT();
 }
@@ -74,12 +83,12 @@ void AsuraCore::begin(const char* ssid, const char* password, const char* mqttSe
 
 void AsuraCore::run() {
   unsigned long now = millis();
-  
+
   // Maintain WiFi
   if (WiFi.status() != WL_CONNECTED) {
     _setupWiFi();
   }
-  
+
   // Maintain MQTT
   if (!_mqttClient.connected()) {
     if (now - _lastReconnect > ASURA_RECONNECT_INTERVAL) {
@@ -89,17 +98,158 @@ void AsuraCore::run() {
   } else {
     _mqttClient.loop();
   }
-  
+
+  // Auto-poll bound sensors
+  if (now - _lastSensorRead > _telemetryInterval) {
+    _lastSensorRead = now;
+    _pollSensors();
+  }
+
   // Send telemetry
   if (now - _lastTelemetry > _telemetryInterval) {
     _lastTelemetry = now;
     _sendTelemetry();
   }
-  
+
   // Send status heartbeat
   if (now - _lastStatus > ASURA_STATUS_INTERVAL) {
     _lastStatus = now;
     _sendStatus("online");
+  }
+}
+
+// =============================================================================
+// SIMPLE BINDING API
+// =============================================================================
+
+void AsuraCore::bindSwitch(int channel, int pin) {
+  if (channel < 0 || channel >= ASURA_MAX_CHANNELS) return;
+
+  pinMode(pin, OUTPUT);
+  digitalWrite(pin, LOW);
+  _switchPins[channel] = pin;
+
+  if (_debug) {
+    Serial.print("[Bind] Switch ch");
+    Serial.print(channel);
+    Serial.print(" -> pin ");
+    Serial.println(pin);
+  }
+}
+
+void AsuraCore::bindSlider(int channel, int pin, int minVal, int maxVal) {
+  if (channel < 0 || channel >= ASURA_MAX_CHANNELS) return;
+  if (_numSliderBindings >= ASURA_MAX_BINDINGS) return;
+
+  pinMode(pin, OUTPUT);
+  analogWrite(pin, 0);
+
+  AsuraSliderBinding& b = _sliderBindings[_numSliderBindings++];
+  b.channel = channel;
+  b.pin = pin;
+  b.minVal = minVal;
+  b.maxVal = maxVal;
+  b.active = true;
+
+  if (_debug) {
+    Serial.print("[Bind] Slider ch");
+    Serial.print(channel);
+    Serial.print(" -> pin ");
+    Serial.print(pin);
+    Serial.print(" (");
+    Serial.print(minVal);
+    Serial.print("..");
+    Serial.print(maxVal);
+    Serial.println(")");
+  }
+}
+
+void AsuraCore::bindSensor(int channel, int pin, AsuraSensorMode mode) {
+  if (channel < 0 || channel >= ASURA_MAX_CHANNELS) return;
+  if (_numSensorBindings >= ASURA_MAX_BINDINGS) return;
+
+  // Configure pin mode based on sensor type
+  if (mode == DIGITAL_NORMAL) {
+    pinMode(pin, INPUT);
+  } else if (mode == DIGITAL_INVERTED) {
+    pinMode(pin, INPUT_PULLUP);
+  }
+  // Analog pins do not need pinMode on most boards
+
+  AsuraSensorBinding& b = _sensorBindings[_numSensorBindings++];
+  b.channel = channel;
+  b.pin = pin;
+  b.mode = mode;
+  b.active = true;
+
+  if (_debug) {
+    Serial.print("[Bind] Sensor ch");
+    Serial.print(channel);
+    Serial.print(" <- pin ");
+    Serial.print(pin);
+    Serial.print(" mode ");
+    Serial.println((int)mode);
+  }
+}
+
+// =============================================================================
+// INTERNAL: APPLY BINDINGS WHEN COMMAND ARRIVES
+// =============================================================================
+
+void AsuraCore::_applySwitch(int channel, float value) {
+  int pin = _switchPins[channel];
+  if (pin < 0) return;
+  digitalWrite(pin, value > 0 ? HIGH : LOW);
+}
+
+void AsuraCore::_applySlider(int channel, float value) {
+  for (int i = 0; i < _numSliderBindings; i++) {
+    AsuraSliderBinding& b = _sliderBindings[i];
+    if (!b.active || b.channel != channel) continue;
+
+    int v = (int)value;
+    if (v < b.minVal) v = b.minVal;
+    if (v > b.maxVal) v = b.maxVal;
+
+    int pwm = map(v, b.minVal, b.maxVal, 0, 255);
+    analogWrite(b.pin, pwm);
+  }
+}
+
+// =============================================================================
+// INTERNAL: AUTO-POLL BOUND SENSORS
+// =============================================================================
+
+int AsuraCore::_readSensorPin(const AsuraSensorBinding& b) {
+  switch (b.mode) {
+    case DIGITAL_NORMAL:
+      return digitalRead(b.pin);
+
+    case DIGITAL_INVERTED:
+      return !digitalRead(b.pin);
+
+    case ANALOG_RAW:
+      return analogRead(b.pin);
+
+    case ANALOG_PERCENT: {
+      int raw = analogRead(b.pin);
+      #ifdef ESP32
+        return map(raw, 0, 4095, 0, 100);
+      #else
+        return map(raw, 0, 1023, 0, 100);
+      #endif
+    }
+  }
+  return 0;
+}
+
+void AsuraCore::_pollSensors() {
+  for (int i = 0; i < _numSensorBindings; i++) {
+    AsuraSensorBinding& b = _sensorBindings[i];
+    if (!b.active) continue;
+
+    int value = _readSensorPin(b);
+    write(b.channel, value);
   }
 }
 
@@ -187,17 +337,17 @@ void AsuraCore::setDebug(bool enable) {
 void AsuraCore::_setupWiFi() {
   Serial.print("[WiFi] Connecting to ");
   Serial.print(_ssid);
-  
+
   WiFi.mode(WIFI_STA);
   WiFi.begin(_ssid, _password);
-  
+
   int attempts = 0;
   while (WiFi.status() != WL_CONNECTED && attempts < 30) {
     delay(500);
     Serial.print(".");
     attempts++;
   }
-  
+
   if (WiFi.status() == WL_CONNECTED) {
     Serial.println(" OK");
     Serial.print("[WiFi] IP: ");
@@ -219,13 +369,13 @@ void AsuraCore::_setupMQTT() {
 
 void AsuraCore::_reconnectMQTT() {
   Serial.print("[MQTT] Connecting...");
-  
+
   String clientId = "asura-";
   clientId += String(random(0xffff), HEX);
-  
+
   // LWT message for offline detection
   char lwtPayload[] = "{\"status\":\"offline\",\"online\":false}";
-  
+
   if (_mqttClient.connect(clientId.c_str(), NULL, NULL,
                           _topicStatus, 0, false, lwtPayload)) {
     Serial.println(" OK");
@@ -258,25 +408,31 @@ void AsuraCore::_mqttCallback(char* topic, byte* payload, unsigned int length) {
 void AsuraCore::_handleMessage(char* topic, byte* payload, unsigned int length) {
   JsonDocument doc;
   DeserializationError error = deserializeJson(doc, payload, length);
-  
+
   if (error) {
     if (_debug) Serial.println("[MQTT] JSON parse error");
     return;
   }
-  
+
   if (_debug) {
     Serial.print("[MQTT] Command: ");
     serializeJson(doc, Serial);
     Serial.println();
   }
-  
+
   // Handle channel commands: {"channel": N, "value": X} or {"0": X, "1": Y, ...}
   if (doc.containsKey("channel") && doc.containsKey("value")) {
     int channel = doc["channel"].as<int>();
     float value = doc["value"].as<float>();
-    
+
     if (channel >= 0 && channel < ASURA_MAX_CHANNELS) {
       _channels[channel] = value;
+
+      // Auto-apply bindings (switch/slider)
+      _applySwitch(channel, value);
+      _applySlider(channel, value);
+
+      // Then call user handler if any
       if (_handlers[channel] != nullptr) {
         AsuraParam param(value);
         _handlers[channel](param);
@@ -292,7 +448,7 @@ void AsuraCore::_handleMessage(char* topic, byte* payload, unsigned int length) 
     // Handle {"0": X, "1": Y, ...} format
     for (JsonPair kv : doc.as<JsonObject>()) {
       const char* key = kv.key().c_str();
-      
+
       bool isNumber = true;
       for (int i = 0; key[i] != '\0'; i++) {
         if (key[i] < '0' || key[i] > '9') {
@@ -300,13 +456,17 @@ void AsuraCore::_handleMessage(char* topic, byte* payload, unsigned int length) 
           break;
         }
       }
-      
+
       if (isNumber) {
         int channel = atoi(key);
         float value = kv.value().as<float>();
-        
+
         if (channel >= 0 && channel < ASURA_MAX_CHANNELS) {
           _channels[channel] = value;
+
+          _applySwitch(channel, value);
+          _applySlider(channel, value);
+
           if (_handlers[channel] != nullptr) {
             AsuraParam param(value);
             _handlers[channel](param);
@@ -324,22 +484,22 @@ void AsuraCore::_handleMessage(char* topic, byte* payload, unsigned int length) 
 
 void AsuraCore::_sendTelemetry() {
   if (!_mqttClient.connected()) return;
-  
+
   for (int i = 0; i < ASURA_MAX_CHANNELS; i++) {
     if (_channelDirty[i]) {
       char topic[128];
       snprintf(topic, sizeof(topic), "device/%s/data/%d", _deviceKey, i);
-      
+
       JsonDocument doc;
       doc["value"] = _channels[i];
       doc["ts"] = millis();
-      
+
       char payload[128];
       serializeJson(doc, payload);
-      
+
       _mqttClient.publish(topic, payload);
       _channelDirty[i] = false;
-      
+
       if (_debug) {
         Serial.print("[MQTT] Sent ch");
         Serial.print(i);
@@ -356,19 +516,19 @@ void AsuraCore::_sendTelemetry() {
 
 void AsuraCore::_sendStatus(const char* status) {
   if (!_mqttClient.connected()) return;
-  
+
   JsonDocument doc;
   doc["status"] = status;
   doc["online"] = true;
   doc["uptime"] = millis() / 1000;
   doc["rssi"] = WiFi.RSSI();
   doc["heap"] = ESP.getFreeHeap();
-  
+
   char payload[256];
   serializeJson(doc, payload);
-  
+
   _mqttClient.publish(_topicStatus, payload);
-  
+
   if (_debug) {
     Serial.println("[MQTT] Status: online");
   }
